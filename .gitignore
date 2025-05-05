@@ -1,0 +1,16 @@
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+
+# Ansible
+ansible/inventory.json
+ansible/nfs_paths.json
+ansible/inventory.ini
+ansible/vars.yml
+
+# Miscellaneous
+*.log
+.DS_Store
