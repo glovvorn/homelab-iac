@@ -1,69 +1,44 @@
 name: Deploy Homelab Infrastructure
-
 on:
   push:
     branches:
       - main
-
 jobs:
   deploy:
     runs-on: self-hosted
-
+    env:
+      TF_VAR_proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+      TF_VAR_unifi_username: ${{ secrets.UNIFI_USERNAME }}
+      TF_VAR_unifi_password: ${{ secrets.UNIFI_PASSWORD }}
+      TF_VAR_udm_ip: ${{ secrets.UDM_IP }}
+      TF_VAR_truenas_api_key: ${{ secrets.TRUENAS_API_KEY }}
+      TF_VAR_truenas_nfs_ip: ${{ secrets.TRUENAS_NFS_IP }}
+      TF_VAR_personal_devices_passphrase: ${{ secrets.PERSONAL_DEVICES_PASSPHRASE }}
+      TF_VAR_iot_passphrase: ${{ secrets.IOT_PASSPHRASE }}
+      TF_VAR_guest_passphrase: ${{ secrets.GUEST_PASSPHRASE }}
+      TF_VAR_lxc_password: ${{ secrets.LXC_PASSWORD }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ./terraform
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: ./terraform
-        env:
-          TF_VAR_proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          TF_VAR_unifi_username: ${{ secrets.UNIFI_USERNAME }}
-          TF_VAR_unifi_password: ${{ secrets.UNIFI_PASSWORD }}
-          TF_VAR_udm_ip: ${{ secrets.UDM_IP }}
-          TF_VAR_truenas_api_key: ${{ secrets.TRUENAS_API_KEY }}
-          TF_VAR_truenas_nfs_ip: ${{ secrets.TRUENAS_NFS_IP }}
-          TF_VAR_personal_devices_passphrase: ${{ secrets.PERSONAL_DEVICES_PASSPHRASE }}
-          TF_VAR_iot_passphrase: ${{ secrets.IOT_PASSPHRASE }}
-          TF_VAR_guest_passphrase: ${{ secrets.GUEST_PASSPHRASE }}
-          TF_VAR_lxc_password: ${{ secrets.LXC_PASSWORD }}
-
-      - name: Generate Ansible Inventory
+        uses: actions/checkout@v4
+      - name: Run terraform init
+        run: /usr/local/bin/terraform init
+        working-directory: terraform
+      - name: Run terraform apply
+        run: /usr/local/bin/terraform apply -auto-approve
+        working-directory: terraform
+      - name: Generate Ansible inventory
         run: |
-          terraform output -json lxc_inventory > ansible/inventory.json
-          terraform output -json nfs_paths > ansible/nfs_paths.json
-          cat <<EOF > ansible/inventory.ini
-          [management]
-          ${(fromJSON(terraform.output.lxc_inventory)).management.services.management.ip} ansible_user=root ansible_password=${(fromJSON(terraform.output.lxc_inventory)).management.services.management.lxc_password} vmid=${(fromJSON(terraform.output.lxc_inventory)).management.services.management.vmid}
-
-          [lovvorn]
-          [lovvorn_nextcloud]
-          ${(fromJSON(terraform.output.lxc_inventory)).lovvorn.services.nextcloud.ip} ansible_user=root ansible_password=${(fromJSON(terraform.output.lxc_inventory)).lovvorn.services.nextcloud.lxc_password} vmid=${(fromJSON(terraform.output.lxc_inventory)).lovvorn.services.nextcloud.vmid}
-
-          [shepherdscall]
-          [shepherdscall_nextcloud]
-          ${(fromJSON(terraform.output.lxc_inventory)).shepherdscall.services.nextcloud.ip} ansible_user=root ansible_password=${(fromJSON(terraform.output.lxc_inventory)).shepherdscall.services.nextcloud.lxc_password} vmid=${(fromJSON(terraform.output.lxc_inventory)).shepherdscall.services.nextcloud.vmid}
-          EOF
-          echo "truenas_nfs_ip: ${{ secrets.TRUENAS_NFS_IP }}" > ansible/vars.yml
-          echo "nfs_paths: $(cat ansible/nfs_paths.json)" >> ansible/vars.yml
-        working-directory: ./terraform
-
-      - name: Set up Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-
-      - name: Run Ansible Playbook
+          jq -r '.lxc_inventory.value' terraform.tfstate | tee inventory.json
+          echo "[management]" > inventory.ini
+          jq -r '.management.services[].ip' inventory.json >> inventory.ini
+          echo "[lovvorn]" >> inventory.ini
+          echo "[lovvorn_nextcloud]" >> inventory.ini
+          jq -r '.lovvorn.services.nextcloud.ip' inventory.json >> inventory.ini
+          echo "[shepherdscall]" >> inventory.ini
+          echo "[shepherdscall_nextcloud]" >> inventory.ini
+          jq -r '.shepherdscall.services.nextcloud.ip' inventory.json >> inventory.ini
+          jq -r '.nfs_paths.value' terraform.tfstate | tee nfs_paths.json
+        working-directory: terraform
+      - name: Run Ansible playbook
         run: ansible-playbook -i inventory.ini --extra-vars "@vars.yml" playbook.yml
-        working-directory: ./ansible
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: False
+        working-directory: terraform/ansible
