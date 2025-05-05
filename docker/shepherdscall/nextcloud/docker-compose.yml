@@ -1,0 +1,22 @@
+version: '3'
+services:
+  nextcloud:
+    image: nextcloud:latest
+    container_name: nextcloud
+    volumes:
+      - nextcloud_data:/var/www/html
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud-shepherdscall.rule=Host(`www.shepherdscall.com`)"
+      - "traefik.http.routers.nextcloud-shepherdscall.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-shepherdscall.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nextcloud-shepherdscall.loadbalancer.server.port=80"
+
+volumes:
+  nextcloud_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${TRUENAS_NFS_IP},rw
+      device: :/mnt/data/shepherdscall/nextcloud

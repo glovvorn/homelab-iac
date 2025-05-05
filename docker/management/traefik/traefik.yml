@@ -1,0 +1,27 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+http:
+  routers:
+    traefik:
+      rule: "Host(`traefik.myhomelab.com`)"
+      service: api@internal
+      entryPoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "your_email@example.com"
+      storage: "/acme.json"
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  docker:
+    exposedByDefault: false
