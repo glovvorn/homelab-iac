@@ -1,4 +1,8 @@
 terraform {
+  backend "local" {
+    path = "/mnt/terraform-state/homelab.tfstate"
+  }
+
   required_providers {
     unifi = {
       source  = "paultyng/unifi"

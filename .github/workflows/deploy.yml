@@ -5,6 +5,10 @@ on:
       - main
 jobs:
   deploy:
+    concurrency:
+      group: homelab-deploy
+      cancel-in-progress: false
+
     runs-on: self-hosted
     env:
       TF_VAR_proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
@@ -23,13 +27,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Run terraform init
-        run: /usr/bin/terraform init
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init (local backend)
+        run: terraform init
         working-directory: terraform
-      - name: Run terraform apply
-        run: /usr/bin/terraform apply -auto-approve
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
         working-directory: terraform
+      
       - name: Generate Ansible inventory
+        working-directory: terraform
         run: |
           jq -r '.lxc_inventory.value' terraform.tfstate | tee inventory.json
           echo "[management]" > inventory.ini
@@ -41,7 +54,7 @@ jobs:
           echo "[shepherdscall_nextcloud]" >> inventory.ini
           jq -r '.shepherdscall.services.nextcloud.ip' inventory.json >> inventory.ini
           jq -r '.nfs_paths.value' terraform.tfstate | tee nfs_paths.json
-        working-directory: terraform
+        
       - name: Run Ansible playbook
-        run: ansible-playbook -i inventory.ini --extra-vars "@vars.yml" playbook.yml
         working-directory: terraform/ansible
+        run: ansible-playbook -i inventory.ini --extra-vars "@vars.yml" playbook.yml
