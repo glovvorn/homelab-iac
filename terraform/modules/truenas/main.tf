@@ -2,7 +2,7 @@ resource "truenas_dataset" "datasets" {
   for_each = { for dataset in var.datasets : dataset.name => dataset }
 
   name = each.value.name
-  pool = "storage-pool"
+  pool = "data"
   path = each.value.path
 }
 
