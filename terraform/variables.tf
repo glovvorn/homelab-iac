@@ -37,6 +37,16 @@ variable "proxmox_ip" {
   type        = string
 }
 
+variable "proxmox_api_token_id" {
+  description = "Proxmox API token ID"
+  type        = string
+}
+
+variable "proxmox_api_token_secret" {
+  description = "Proxmox API token secret"
+  type        = string
+}
+
 variable "personal_devices_passphrase" {
   description = "WiFi passphrase for Personal-Devices WLAN"
   type        = string

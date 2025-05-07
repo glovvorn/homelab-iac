@@ -23,10 +23,10 @@ provider "unifi" {
 }
 
 provider "proxmox" {
-  pm_api_url      = "https://${var.proxmox_ip}:8006/api2/json"
-  pm_user         = "root@pam"
-  pm_password     = var.proxmox_password
-  pm_tls_insecure = true
+  pm_api_url          = "https://${var.proxmox_ip}:8006/api2/json/"
+  pm_api_token_id     = var.pm_api_token_id     # or rely on PM_API_TOKEN_ID env
+  pm_api_token_secret = var.pm_api_token_secret # or rely on PM_API_TOKEN_SECRET env
+  pm_tls_insecure     = true
 }
 
 provider "truenas" {
@@ -48,27 +48,27 @@ resource "unifi_network" "vlans" {
 # 1. Family Devices Group (Laptops, Phones, Consoles, Smart TVs, etc.)
 ###############################################################################
 resource "unifi_user_group" "personal_devices_group" {
-  name               = "Personal-Devices"
-  qos_rate_max_down  = 50000    # max download (kbps)
-  qos_rate_max_up    = 10000    # max upload   (kbps)
+  name              = "Personal-Devices"
+  qos_rate_max_down = 50000 # max download (kbps)
+  qos_rate_max_up   = 10000 # max upload   (kbps)
 }
 
 ###############################################################################
 # 2. IoT Devices Group (Doorbells, Smart Outlets, Appliances)
 ###############################################################################
 resource "unifi_user_group" "iot_group" {
-  name               = "IoT-Devices"
-  qos_rate_max_down  = 5000     # low bandwidth for sensors
-  qos_rate_max_up    = 2000
+  name              = "IoT-Devices"
+  qos_rate_max_down = 5000 # low bandwidth for sensors
+  qos_rate_max_up   = 2000
 }
 
 ###############################################################################
 # 3. Guest Group
 ###############################################################################
 resource "unifi_user_group" "guest_group" {
-  name               = "Guest-Network"
-  qos_rate_max_down  = 10000    # moderate guest speeds
-  qos_rate_max_up    = 5000
+  name              = "Guest-Network"
+  qos_rate_max_down = 10000 # moderate guest speeds
+  qos_rate_max_up   = 5000
 }
 
 # WiFi Networks for VLANs 100, 110, 120
