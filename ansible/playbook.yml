@@ -1,7 +1,15 @@
 - name: Configure Homelab Services
   hosts: all
   become: yes
+  vars:
+    # Ensure these are defined in your inventory or extra-vars
+    truenas_nfs_ip: "{{ lookup('env', 'TRUENAS_NFS_IP') }}"
+    nfs_paths: "{{ lookup('vars', 'nfs_paths') }}"
   tasks:
+
+    ####################################################################
+    # 1. Install Docker & Docker Compose
+    ####################################################################
     - name: Install Docker and Docker Compose
       apt:
         name:
@@ -10,181 +18,153 @@
         state: present
         update_cache: yes
 
+    - name: Add ansible_user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    ####################################################################
+    # 2. Ensure www-data user on NextCloud LXCs
+    ####################################################################
     - name: Ensure www-data user exists on NextCloud LXCs
       when: inventory_hostname in ['lovvorn_nextcloud', 'shepherdscall_nextcloud']
-      user:
+      ansible.builtin.user:
         name: www-data
         uid: 33
         group: www-data
-        shell: /bin/false
+        shell: /usr/sbin/nologin
         state: present
 
-    - name: Ensure NFS mount directory exists on Lovvorn services
-      when: inventory_hostname in groups['lovvorn']
+    ####################################################################
+    # 3. Mount NFS Shares for Lovvorn & Shepherdscall
+    ####################################################################
+    - name: Ensure NFS mount directory exists
       file:
-        path: /mnt/{{ inventory_hostname | split('_') | last }}
+        path: "/mnt/{{ inventory_hostname.split('_')[-1] }}"
         state: directory
         mode: "0755"
 
-    - name: Mount NFS share for Lovvorn services
-      when: inventory_hostname in groups['lovvorn']
+    - name: Mount NFS share
       mount:
-        path: /mnt/{{ inventory_hostname | split('_') | last }}
-        src: "{{ truenas_nfs_ip }}:{{ nfs_paths.lovvorn[inventory_hostname | split('_') | last] }}"
+        path: "/mnt/{{ inventory_hostname.split('_')[-1] }}"
+        src: "{{ truenas_nfs_ip }}:{{ nfs_paths[inventory_hostname.split('_')[-2]][inventory_hostname.split('_')[-1]] }}"
         fstype: nfs
         state: mounted
         opts: rw
 
-    - name: Ensure NFS mount directory exists on Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall']
+    - name: Debug: Show current mounts
+      command: mount | grep /mnt
+      register: mount_list
+      changed_when: false
+
+    - debug:
+        var: mount_list.stdout_lines
+
+    ####################################################################
+    # 4. Management LXC: PiHole, Traefik, Monitoring
+    ####################################################################
+    - name: Create Management service directories
       file:
-        path: /mnt/{{ inventory_hostname | split('_') | last }}
+        path: "/opt/{{ item }}"
         state: directory
         mode: "0755"
-
-    - name: Mount NFS share for Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall']
-      mount:
-        path: /mnt/{{ inventory_hostname | split('_') | last }}
-        src: "{{ truenas_nfs_ip }}:{{ nfs_paths.shepherdscall[inventory_hostname | split('_') | last] }}"
-        fstype: nfs
-        state: mounted
-        opts: rw
-
-    - name: Create directory for PiHole docker-compose.yml
+      loop:
+        - pihole
+        - traefik
+        - monitoring
       when: inventory_hostname == 'management'
-      file:
-        path: /opt/pihole
-        state: directory
-        mode: "0755"
 
-    - name: Copy PiHole docker-compose.yml to Management LXC
-      when: inventory_hostname == 'management'
+    - name: Copy Docker Compose files for Management
       copy:
-        src: ../docker/management/pihole/docker-compose.yml
-        dest: /opt/pihole/docker-compose.yml
+        src: "{{ playbook_dir }}/docker/management/{{ item }}/docker-compose.yml"
+        dest: "/opt/{{ item }}/docker-compose.yml"
         mode: "0644"
-      register: pihole_compose_copy
-
-    - name: Run PiHole docker-compose
-      when: inventory_hostname == 'management' and pihole_compose_copy.changed
-      command: docker-compose -f /opt/pihole/docker-compose.yml up -d
-      args:
-        chdir: /opt/pihole
-
-    - name: Create directory for Traefik docker-compose.yml
+      loop:
+        - pihole
+        - traefik
+        - monitoring
       when: inventory_hostname == 'management'
-      file:
-        path: /opt/traefik
-        state: directory
-        mode: "0755"
+      register: compose_copy
 
-    - name: Copy Traefik docker-compose.yml to Management LXC
-      when: inventory_hostname == 'management'
+    - name: Copy Traefik additional config
       copy:
-        src: ../docker/management/traefik/docker-compose.yml
-        dest: /opt/traefik/docker-compose.yml
-        mode: "0644"
-      register: traefik_compose_copy
-
-    - name: Copy traefik.yml to Management LXC
-      when: inventory_hostname == 'management'
-      copy:
-        src: ../docker/management/traefik/traefik.yml
+        src: "{{ playbook_dir }}/docker/management/traefik/traefik.yml"
         dest: /opt/traefik/traefik.yml
         mode: "0644"
+      when: inventory_hostname == 'management'
       register: traefik_config_copy
 
-    - name: Run Traefik docker-compose
-      when: inventory_hostname == 'management' and (traefik_compose_copy.changed or traefik_config_copy.changed)
-      command: docker-compose -f /opt/traefik/docker-compose.yml up -d
-      args:
-        chdir: /opt/traefik
-
-    - name: Create acme.json for Traefik
-      when: inventory_hostname == 'management'
+    - name: Ensure acme.json exists for Traefik
       file:
         path: /opt/traefik/acme.json
         state: touch
         mode: "0600"
-
-    - name: Create directory for Monitoring docker-compose.yml
       when: inventory_hostname == 'management'
+
+    - name: Deploy Management services with Docker Compose
+      community.docker.docker_compose:
+        project_src: "/opt/{{ item }}"
+        state: present
+      loop:
+        - pihole
+        - traefik
+        - monitoring
+      when: >
+        inventory_hostname == 'management'
+        and (
+          compose_copy.results | selectattr('item', 'equalto', item) | map(attribute='changed') | first
+        )
+    
+    - name: Debug: List running containers on management
+      shell: docker ps --format "{{ '{{.Names}}' }}"
+      register: docker_ps
+      when: inventory_hostname == 'management'
+      changed_when: false
+
+    - debug:
+        var: docker_ps.stdout_lines
+      when: inventory_hostname == 'management'
+
+    ####################################################################
+    # 5. Lovvorn & Shepherdscall LXC: Service Deployments
+    ####################################################################
+    - name: Create service directory on Lovvorn/Shepherdscall LXCs
       file:
-        path: /opt/monitoring
+        path: "/opt/{{ inventory_hostname.split('_')[-1] }}"
         state: directory
         mode: "0755"
+      when: inventory_hostname in groups['lovvorn'] or inventory_hostname in groups['shepherdscall']
 
-    - name: Copy Monitoring docker-compose.yml to Management LXC
-      when: inventory_hostname == 'management'
+    - name: Copy service Docker Compose
       copy:
-        src: ../docker/management/monitoring/docker-compose.yml
-        dest: /opt/monitoring/docker-compose.yml
+        src: "{{ playbook_dir }}/docker/{{ inventory_hostname.split('_')[0] }}/{{ inventory_hostname.split('_')[-1] }}/docker-compose.yml"
+        dest: "/opt/{{ inventory_hostname.split('_')[-1] }}/docker-compose.yml"
         mode: "0644"
-      register: monitoring_compose_copy
+      when: inventory_hostname in groups['lovvorn'] or inventory_hostname in groups['shepherdscall']
+      register: svc_compose_copy
 
-    - name: Run Monitoring docker-compose
-      when: inventory_hostname == 'management' and monitoring_compose_copy.changed
-      command: docker-compose -f /opt/monitoring/docker-compose.yml up -d
-      args:
-        chdir: /opt/monitoring
-
-    - name: Create directory for docker-compose.yml on Lovvorn services
-      when: inventory_hostname in groups['lovvorn']
-      file:
-        path: /opt/{{ inventory_hostname | split('_') | last }}
-        state: directory
-        mode: "0755"
-
-    - name: Copy docker-compose.yml to Lovvorn services
-      when: inventory_hostname in groups['lovvorn']
-      copy:
-        src: ../docker/lovvorn/{{ inventory_hostname | split('_') | last }}/docker-compose.yml
-        dest: /opt/{{ inventory_hostname | split('_') | last }}/docker-compose.yml
-        mode: "0644"
-      register: lovvorn_compose_copy
-
-    - name: Create .env file for Lovvorn services
-      when: inventory_hostname in groups['lovvorn']
+    - name: Create .env for service
       copy:
         content: |
           TRUENAS_NFS_IP={{ truenas_nfs_ip }}
-          NFS_PATH={{ nfs_paths.lovvorn[inventory_hostname | split('_') | last] }}
-        dest: /opt/{{ inventory_hostname | split('_') | last }}/.env
+          NFS_PATH={{ nfs_paths[inventory_hostname.split('_')[0]][inventory_hostname.split('_')[-1]] }}
+        dest: "/opt/{{ inventory_hostname.split('_')[-1] }}/.env"
         mode: "0644"
+      when: inventory_hostname in groups['lovvorn'] or inventory_hostname in groups['shepherdscall']
 
-    - name: Run docker-compose for Lovvorn services
-      when: inventory_hostname in groups['lovvorn'] and lovvorn_compose_copy.changed
-      command: docker-compose -f /opt/{{ inventory_hostname | split('_') | last }}/docker-compose.yml up -d
-      args:
-        chdir: /opt/{{ inventory_hostname | split('_') | last }}
+    - name: Deploy service with Docker Compose
+      community.docker.docker_compose:
+        project_src: "/opt/{{ inventory_hostname.split('_')[-1] }}"
+        state: present
+      when: svc_compose_copy.changed
 
-    - name: Create directory for docker-compose.yml on Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall']
-      file:
-        path: /opt/{{ inventory_hostname | split('_') | last }}
-        state: directory
-        mode: "0755"
+    - name: Debug: List running containers on service host
+      shell: docker ps --format "{{ '{{.Names}}' }}"
+      register: svc_ps
+      when: svc_compose_copy.changed
+      changed_when: false
 
-    - name: Copy docker-compose.yml to Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall']
-      copy:
-        src: ../docker/shepherdscall/{{ inventory_hostname | split('_') | last }}/docker-compose.yml
-        dest: /opt/{{ inventory_hostname | split('_') | last }}/docker-compose.yml
-        mode: "0644"
-      register: shepherdscall_compose_copy
-
-    - name: Create .env file for Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall']
-      copy:
-        content: |
-          TRUENAS_NFS_IP={{ truenas_nfs_ip }}
-          NFS_PATH={{ nfs_paths.shepherdscall[inventory_hostname | split('_') | last] }}
-        dest: /opt/{{ inventory_hostname | split('_') | last }}/.env
-        mode: "0644"
-
-    - name: Run docker-compose for Shepherdscall services
-      when: inventory_hostname in groups['shepherdscall'] and shepherdscall_compose_copy.changed
-      command: docker-compose -f /opt/{{ inventory_hostname | split('_') | last }}/docker-compose.yml up -d
-      args:
-        chdir: /opt/{{ inventory_hostname | split('_') | last }}
+    - debug:
+        var: svc_ps.stdout_lines
+      when: svc_compose_copy.changed
