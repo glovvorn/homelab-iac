@@ -29,12 +29,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run terraform init
-        run: /usr/bin/terraform init
+        env:  
+          CURL_CA_BUNDLE: ""
         working-directory: terraform
+        run: /usr/bin/terraform init
       
       - name: Run terraform apply
-        run: /usr/bin/terraform apply -auto-approve
+        env:
+          CURL_CA_BUNDLE: ""
         working-directory: terraform
+        run: /usr/bin/terraform apply -auto-approve
       
       - name: Generate Ansible inventory
         run: |
