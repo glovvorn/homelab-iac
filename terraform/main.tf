@@ -70,6 +70,10 @@ resource "unifi_wlan" "guest" {
 # Modules
 module "management" {
   source       = "./modules/management"
+  providers = {
+    proxmox = proxmox
+    truenas = truenas
+  }
   vlan_id      = local.network_configs.management.vlan_id
   subnet       = local.network_configs.management.subnet
   ip_prefix    = local.network_configs.management.ip_prefix
@@ -79,6 +83,10 @@ module "management" {
 
 module "lovvorn" {
   source         = "./modules/lovvorn"
+  providers = {
+    proxmox = proxmox
+    truenas = truenas
+  }
   vlan_id        = local.network_configs.lovvorn.vlan_id
   subnet         = local.network_configs.lovvorn.subnet
   ip_prefix      = local.network_configs.lovvorn.ip_prefix
@@ -89,6 +97,10 @@ module "lovvorn" {
 
 module "shepherdscall" {
   source         = "./modules/shepherdscall"
+  providers = {
+    proxmox = proxmox
+    truenas = truenas
+  }
   vlan_id        = local.network_configs.shepherdscall.vlan_id
   subnet         = local.network_configs.shepherdscall.subnet
   ip_prefix      = local.network_configs.shepherdscall.ip_prefix
@@ -99,6 +111,10 @@ module "shepherdscall" {
 
 module "truenas" {
   source = "./modules/truenas"
+  providers = {
+    proxmox = proxmox
+    truenas = truenas
+  }
   datasets = concat(
     [
       for service_name, service in module.lovvorn.services : {
