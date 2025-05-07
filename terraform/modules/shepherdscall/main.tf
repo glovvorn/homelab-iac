@@ -1,27 +1,39 @@
 locals {
-  services = {
+  services_base = {
     nextcloud = {
-      vmid       = 900
-      ip_suffix  = "100"
-      ip         = "${var.ip_prefix}.${local.services.nextcloud.ip_suffix}"
-      network_ip = "${var.ip_prefix}.${local.services.nextcloud.ip_suffix}/24"
-      nfs_path   = "/mnt/data/shepherdscall/nextcloud"
+      vmid      = 900
+      ip_suffix = "200"
+      nfs_path  = "/mnt/data/shepherdscall/nextcloud"
     }
-    # Add more services here, e.g.:
+    # add more base entries as needed
     # immich = {
     #   ip_suffix = "101"
-    #   nfs_path  = "/mnt/data/shepherdscall/immich"
+    #   nfs_path  = "/mnt/data/lovvorn/immich"
     # }
     # plex = {
     #   ip_suffix = "102"
-    #   nfs_path  = "/mnt/data/shepherdscall/plex"
+    #   nfs_path  = "/mnt/data/lovvorn/plex"
     # }
   }
+}
+
+locals {
+  services = tomap({
+    for name, svc in local.services_base :
+    name => merge(
+      svc,
+      {
+        ip         = "${var.ip_prefix}.${svc.ip_suffix}"
+        network_ip = "${var.ip_prefix}.${svc.ip_suffix}/24"
+      }
+    )
+  })
 }
 
 resource "proxmox_lxc" "nextcloud" {
   vmid         = local.services.nextcloud.vmid
   hostname     = "shepherdscall-nextcloud"
+  target_node  = "pve"
   ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
   password     = var.lxc_password
   unprivileged = true

@@ -33,6 +33,7 @@ locals {
 resource "proxmox_lxc" "nextcloud" {
   vmid         = local.services.nextcloud.vmid
   hostname     = "lovvorn-nextcloud"
+  target_node  = "pve"
   ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
   password     = var.lxc_password
   unprivileged = true
