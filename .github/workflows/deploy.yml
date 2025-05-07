@@ -13,6 +13,7 @@ jobs:
       TF_VAR_udm_ip: ${{ secrets.UDM_IP }}
       TF_VAR_truenas_api_key: ${{ secrets.TRUENAS_API_KEY }}
       TF_VAR_truenas_nfs_ip: ${{ secrets.TRUENAS_NFS_IP }}
+      TF_VAR_proxmox_ip: ${{ secrets.PROXMOX_IP }}
       TF_VAR_personal_devices_passphrase: ${{ secrets.PERSONAL_DEVICES_PASSPHRASE }}
       TF_VAR_iot_passphrase: ${{ secrets.IOT_PASSPHRASE }}
       TF_VAR_guest_passphrase: ${{ secrets.GUEST_PASSPHRASE }}

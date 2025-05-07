@@ -23,7 +23,7 @@ provider "unifi" {
 }
 
 provider "proxmox" {
-  pm_api_url      = "https://<proxmox_ip>:8006/api2/json"
+  pm_api_url      = "https://${var.proxmox_ip}:8006/api2/json"
   pm_user         = "root@pam"
   pm_password     = var.proxmox_password
   pm_tls_insecure = true

@@ -32,6 +32,11 @@ variable "truenas_nfs_ip" {
   type        = string
 }
 
+variable "proxmox_ip" {
+  description = "Proxmox server IP"
+  type        = string
+}
+
 variable "personal_devices_passphrase" {
   description = "WiFi passphrase for Personal-Devices WLAN"
   type        = string
