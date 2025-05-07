@@ -13,7 +13,7 @@ resource "truenas_share_nfs" "nfs_shares" {
   for_each = { for ds in var.datasets : ds.name => ds }
 
   paths = [
-    truenas_dataset.datasets[each.key].path
+    each.value.path
   ]
   hosts = each.value.nfs_hosts
 }
