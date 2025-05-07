@@ -75,7 +75,7 @@ resource "unifi_user_group" "guest_group" {
 resource "unifi_wlan" "personal_devices" {
   name          = "Personal-Devices"
   passphrase    = var.personal_devices_passphrase
-  network_id    = local.networks.personal.id
+  network_id    = local.networks.personal.vlan_id
   security      = "wpapsk"
   user_group_id = unifi_user_group.personal_devices_group.id
 }
@@ -83,7 +83,7 @@ resource "unifi_wlan" "personal_devices" {
 resource "unifi_wlan" "iot" {
   name          = "IoT"
   passphrase    = var.iot_passphrase
-  network_id    = local.networks.iot.id
+  network_id    = local.networks.iot.vlan_id
   security      = "wpapsk"
   user_group_id = unifi_user_group.iot_group.id
 }
@@ -91,7 +91,7 @@ resource "unifi_wlan" "iot" {
 resource "unifi_wlan" "guest" {
   name          = "Guest"
   passphrase    = var.guest_passphrase
-  network_id    = local.networks.guest.id
+  network_id    = local.networks.guest.vlan_id
   security      = "wpapsk"
   is_guest      = true
   user_group_id = unifi_user_group.guest_group.id
