@@ -1,13 +1,11 @@
 locals {
-  services = {
+  services_base = {
     nextcloud = {
-      vmid       = 200
-      ip_suffix  = "100"
-      ip         = "${var.ip_prefix}.${local.services.nextcloud.ip_suffix}"
-      network_ip = "${var.ip_prefix}.${local.services.nextcloud.ip_suffix}/24"
-      nfs_path   = "/mnt/data/lovvorn/nextcloud"
+      vmid      = 200
+      ip_suffix = "100"
+      nfs_path  = "/mnt/data/lovvorn/nextcloud"
     }
-    # Add more services here, e.g.:
+    # add more base entries as needed
     # immich = {
     #   ip_suffix = "101"
     #   nfs_path  = "/mnt/data/lovvorn/immich"
@@ -17,6 +15,19 @@ locals {
     #   nfs_path  = "/mnt/data/lovvorn/plex"
     # }
   }
+}
+
+locals {
+  services = tomap({
+    for name, svc in local.services_base :
+    name => merge(
+      svc,
+      {
+        ip         = "${var.ip_prefix}.${svc.ip_suffix}"
+        network_ip = "${var.ip_prefix}.${svc.ip_suffix}/24"
+      }
+    )
+  })
 }
 
 resource "proxmox_lxc" "nextcloud" {

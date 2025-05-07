@@ -30,8 +30,8 @@ provider "proxmox" {
 }
 
 provider "truenas" {
-  api_key = var.truenas_api_key
-  api_url = "https://${var.truenas_nfs_ip}:443/api/v2.0"
+  api_key  = var.truenas_api_key
+  base_url = "https://${var.truenas_nfs_ip}:443/api/v2.0"
 }
 
 # VLAN Configuration
@@ -60,11 +60,11 @@ resource "unifi_wlan" "iot" {
 }
 
 resource "unifi_wlan" "guest" {
-  name         = "Guest"
-  passphrase   = var.guest_passphrase
-  network_id   = unifi_network.vlans["guest"].id
-  security     = "wpapsk"
-  guest_policy = true
+  name       = "Guest"
+  passphrase = var.guest_passphrase
+  network_id = unifi_network.vlans["guest"].id
+  security   = "wpapsk"
+  is_guest   = true
 }
 
 # Modules

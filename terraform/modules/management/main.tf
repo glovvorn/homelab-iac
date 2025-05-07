@@ -1,11 +1,12 @@
 locals {
-    ip = "${var.ip_prefix}.10"
-    network_ip = "${var.ip_prefix}.10/24"
+  ip         = "${var.ip_prefix}.10"
+  network_ip = "${var.ip_prefix}.10/24"
 }
 
 resource "proxmox_lxc" "management" {
   vmid         = 100
   hostname     = "management"
+  target_node  = "pve"
   ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
   password     = var.lxc_password
   unprivileged = true
