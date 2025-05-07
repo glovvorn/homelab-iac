@@ -24,8 +24,8 @@ provider "unifi" {
 
 provider "proxmox" {
   pm_api_url          = "https://${var.proxmox_ip}:8006/api2/json/"
-  pm_api_token_id     = var.pm_api_token_id     # or rely on PM_API_TOKEN_ID env
-  pm_api_token_secret = var.pm_api_token_secret # or rely on PM_API_TOKEN_SECRET env
+  pm_api_token_id     = var.proxmox_api_token_id     # or rely on PM_API_TOKEN_ID env
+  pm_api_token_secret = var.proxmox_api_token_secret # or rely on PM_API_TOKEN_SECRET env
   pm_tls_insecure     = true
 }
 
