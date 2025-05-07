@@ -23,6 +23,7 @@ resource "proxmox_lxc" "management" {
     ip     = local.network_ip
     gw     = var.gateway
   }
+  tags = "management"
 }
 
 output "management_vmid" {
