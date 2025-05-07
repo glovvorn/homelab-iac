@@ -50,6 +50,7 @@ resource "proxmox_lxc" "nextcloud" {
     ip     = local.services.nextcloud.network_ip
     gw     = var.gateway
   }
+  tags = ["shepherdscall"]
 }
 
 output "services" {
