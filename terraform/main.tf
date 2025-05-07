@@ -36,6 +36,7 @@ provider "proxmox" {
 provider "truenas" {
   api_key  = var.truenas_api_key
   base_url = "https://${var.truenas_nfs_ip}:443/api/v2.0"
+  tls_insecure = true # TODO: Set to false in production and setup proper TLS
 }
 
 # VLAN Configuration
