@@ -44,28 +44,60 @@ resource "unifi_network" "vlans" {
   subnet  = each.value.subnet
 }
 
+###############################################################################
+# 1. Family Devices Group (Laptops, Phones, Consoles, Smart TVs, etc.)
+###############################################################################
+resource "unifi_user_group" "personal_devices_group" {
+  name     = "Personal-Devices"
+  download = 50000    # max download bandwidth in kbps
+  upload   = 10000    # max upload bandwidth in kbps
+}
+
+###############################################################################
+# 2. IoT Devices Group (Doorbells, Smart Outlets, Appliances)
+###############################################################################
+resource "unifi_user_group" "iot_group" {
+  name     = "IoT-Devices"
+  download = 5000     # lower download for low-bandwidth sensors
+  upload   = 2000     # lower upload
+}
+
+###############################################################################
+# 3. Guest Group
+###############################################################################
+resource "unifi_user_group" "guest_group" {
+  name     = "Guest-Network"
+  download = 10000    # medium download for guests
+  upload   = 5000     # medium upload
+}
+
+
 # WiFi Networks for VLANs 100, 110, 120
 resource "unifi_wlan" "personal_devices" {
-  name       = "Personal-Devices"
-  passphrase = var.personal_devices_passphrase
-  network_id = unifi_network.vlans["personal-devices"].id
-  security   = "wpapsk"
+  name          = "Personal-Devices"
+  passphrase    = var.personal_devices_passphrase
+  network_id    = unifi_network.vlans["personal-devices"].id
+  security      = "wpapsk"
+  user_group_id = unifi_user_group.personal_devices_group.id
 }
 
 resource "unifi_wlan" "iot" {
-  name       = "IoT"
-  passphrase = var.iot_passphrase
-  network_id = unifi_network.vlans["iot"].id
-  security   = "wpapsk"
+  name          = "IoT"
+  passphrase    = var.iot_passphrase
+  network_id    = unifi_network.vlans["iot"].id
+  security      = "wpapsk"
+  user_group_id = unifi_user_group.iot_group.id
 }
 
 resource "unifi_wlan" "guest" {
-  name       = "Guest"
-  passphrase = var.guest_passphrase
-  network_id = unifi_network.vlans["guest"].id
-  security   = "wpapsk"
-  is_guest   = true
+  name          = "Guest"
+  passphrase    = var.guest_passphrase
+  network_id    = unifi_network.vlans["guest"].id
+  security      = "wpapsk"
+  is_guest      = true
+  user_group_id = unifi_user_group.guest_group.id
 }
+
 
 # Modules
 module "management" {
