@@ -25,7 +25,7 @@ resource "truenas_dataset" "datasets" {
 
 # Create NFS shares for nested datasets
 resource "truenas_share_nfs" "nfs_shares" {
-  for_each = { for ds in var.datasets : ds.name => ds }
+  for_each = { for ds in var.datasets : ds.key => ds }
 
   paths   = [each.value.path]
   hosts   = [each.value.nfs_hosts]

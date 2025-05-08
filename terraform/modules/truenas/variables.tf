@@ -3,6 +3,7 @@ variable "datasets" {
   type = list(object({
     key       = string
     name      = string
+    parent    = string
     path      = string
     nfs_hosts = list(string)
   }))
