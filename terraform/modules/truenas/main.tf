@@ -28,7 +28,7 @@ resource "truenas_share_nfs" "nfs_shares" {
   for_each = { for ds in var.datasets : ds.key => ds }
 
   paths   = [each.value.path]
-  hosts   = [each.value.nfs_hosts]
+  hosts   = each.value.nfs_hosts # We are already passing in an array of hosts
   comment = "${each.key} NFS share"
   enabled = true
 }
