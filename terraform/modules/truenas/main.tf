@@ -10,7 +10,7 @@ resource "truenas_dataset" "parent_datasets" {
 }
 
 resource "truenas_dataset" "datasets" {
-  for_each = { for ds in var.datasets : ds.name => ds }
+  for_each = { for ds in var.datasets : ds.key => ds }
 
   pool   = "data"
   name   = each.value.name

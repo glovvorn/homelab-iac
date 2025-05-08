@@ -137,6 +137,7 @@ module "truenas" {
   datasets = concat(
     [
       for service_name, service in module.lovvorn.services : {
+        key       = "lovvorn-${service_name}"
         name      = service.service_name
         parent    = "lovvorn"
         path      = service.nfs_path
@@ -145,6 +146,7 @@ module "truenas" {
     ],
     [
       for service_name, service in module.shepherdscall.services : {
+        key       = "shepherdscall-${service_name}"
         name      = service.service_name
         parent    = "shepherdscall"
         path      = service.nfs_path
