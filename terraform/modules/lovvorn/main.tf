@@ -26,7 +26,7 @@ locals {
       {
         ip         = "${var.ip_prefix}.${svc.ip_suffix}"
         network_ip = "${var.ip_prefix}.${svc.ip_suffix}/24"
-        nfs_path   = "${local.local.shared_nfs_path}${svc.service_name}"
+        nfs_path   = "${local.shared_nfs_path}${svc.service_name}"
       }
     )
   })
