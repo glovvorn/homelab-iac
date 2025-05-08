@@ -28,8 +28,8 @@ resource "truenas_dataset" "datasets" {
 resource "truenas_share_nfs" "nfs_shares" {
   for_each = { for ds in var.datasets : ds.name => ds }
 
-  path    = each.value.path      # e.g., "/mnt/data/lovvorn/cloud"
-  hosts   = each.value.nfs_hosts # e.g., ["192.168.10.100"]
+  paths   = [each.value.path]
+  hosts   = each.value.nfs_hosts
   comment = "${each.key} NFS share"
   enabled = true
 }
