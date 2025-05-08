@@ -15,7 +15,7 @@ resource "truenas_dataset" "datasets" {
   for_each = { for ds in var.datasets : ds.name => ds }
 
   pool = "data"
-  name = each.value.name
+  name = replace(each.value.name, "/", "-")
 
   depends_on = [truenas_dataset.parent_datasets]
 
