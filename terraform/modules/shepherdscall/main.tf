@@ -1,9 +1,10 @@
 locals {
+  shared_nfs_path = "/mnt/data/shepherdscall/"
   services_base = {
     nextcloud = {
-      vmid      = 900
-      ip_suffix = "200"
-      nfs_path  = "/mnt/data/shepherdscall/nextcloud"
+      vmid         = 900
+      ip_suffix    = "200"
+      service_name = "cloud"
     }
     # add more base entries as needed
     # immich = {
@@ -25,6 +26,7 @@ locals {
       {
         ip         = "${var.ip_prefix}.${svc.ip_suffix}"
         network_ip = "${var.ip_prefix}.${svc.ip_suffix}/24"
+        nfs_path   = "${local.local.shared_nfs_path}${svc.service_name}"
       }
     )
   })
@@ -56,9 +58,10 @@ resource "proxmox_lxc" "nextcloud" {
 output "services" {
   value = {
     nextcloud = {
-      vmid     = proxmox_lxc.nextcloud.vmid
-      ip       = local.services.nextcloud.ip
-      nfs_path = local.services.nextcloud.nfs_path
+      vmid         = proxmox_lxc.nextcloud.vmid
+      service_name = local.services.nextcloud.service_name
+      ip           = local.services.nextcloud.ip
+      nfs_path     = local.services.nextcloud.nfs_path
     }
   }
 }

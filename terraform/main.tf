@@ -137,14 +137,14 @@ module "truenas" {
   datasets = concat(
     [
       for service_name, service in module.lovvorn.services : {
-        name      = "lovvorn-${service_name}"
+        name      = "${module.lovvorn.name}/${service.service_name}"
         path      = service.nfs_path
         nfs_hosts = [service.ip]
       } if service.nfs_path != null
     ],
     [
       for service_name, service in module.shepherdscall.services : {
-        name      = "shepherdscall-${service_name}"
+        name      = "shepherdscall/${service.service_name}"
         path      = service.nfs_path
         nfs_hosts = [service.ip]
       } if service.nfs_path != null
