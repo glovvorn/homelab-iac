@@ -27,9 +27,7 @@ resource "truenas_dataset" "datasets" {
 resource "truenas_share_nfs" "nfs" {
   for_each = { for ds in var.datasets : ds.key => ds }
 
-  paths = [
-    each.value.path,
-  ]
+  path    = each.value.path
   comment = "${each.key} NFS share"
   hosts   = each.value.nfs_hosts
   networks = [

@@ -13,8 +13,8 @@ terraform {
       version = "~> 2.9.0"
     }
     truenas = {
-      source  = "dariusbakunas/truenas"
-      version = "~> 0.11.1"
+      source  = "glovvorn/truenas"
+      version = "0.12.0"
     }
   }
 }
