@@ -30,11 +30,5 @@ resource "truenas_share_nfs" "nfs" {
   path    = each.value.path
   comment = "${each.key} NFS share"
   hosts   = each.value.nfs_hosts
-  networks = [
-    "<optional allowed network in cidr notation>",
-  ]
-  alldirs = false
   enabled = true
-  quiet   = false
-  ro      = false
 }
