@@ -78,7 +78,7 @@
         project_src: "{{ project_dir }}"
         build: "policy"
         pull: "missing"
-        restarted: yes
+        state: "present"
 
     # - name: Verify services are healthy
     #   community.docker.docker_compose_v2_exec:
