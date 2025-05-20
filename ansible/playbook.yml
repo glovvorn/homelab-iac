@@ -76,8 +76,8 @@
     - name: Pull images & start services with Docker Compose v2
       community.docker.docker_compose_v2:
         project_src: "{{ project_dir }}"
-        build: yes
-        pull: yes
+        build: "policy"
+        pull: "missing"
         restarted: yes
 
     # - name: Verify services are healthy
