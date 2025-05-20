@@ -19,6 +19,7 @@
     - name: Create monitoring network
       docker_network:
         name: "{{ docker_network }}"
+        docker_host: "unix:///var/run/docker.sock"
 
     - name: Create Prometheus config directory
       file:
@@ -37,6 +38,7 @@
         image: "{{ prometheus.image }}"
         state: started
         restart_policy: unless-stopped
+        docker_host: "unix:///var/run/docker.sock"
         networks:
           - name: "{{ docker_network }}"
         ports:
@@ -56,6 +58,7 @@
         image: "{{ grafana.image }}"
         state: started
         restart_policy: unless-stopped
+        docker_host: "unix:///var/run/docker.sock"
         networks:
           - name: "{{ docker_network }}"
         ports:
