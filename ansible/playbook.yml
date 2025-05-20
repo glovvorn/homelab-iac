@@ -6,30 +6,51 @@
   collections:
     - community.docker
 
+  vars:
+    venv_path: /opt/ansible-venv
+    python_executable: "{{ venv_path }}/bin/python"
+    pip_executable: "{{ venv_path }}/bin/pip"
+
   tasks:
+    - name: Ensure python3-venv is installed
+      apt:
+        name: python3-venv
+        state: present
+        update_cache: yes
+
+    - name: Create a virtual environment for Ansible dependencies
+      command:
+        cmd: python3 -m venv {{ venv_path }}
+      args:
+        creates: "{{ venv_path }}/bin/activate"
+
+    - name: Upgrade pip inside venv
+      command:
+        cmd: "{{ pip_executable }} install --upgrade pip"
+
+    - name: Install Docker SDK and requests in venv
+      command:
+        cmd: "{{ pip_executable }} install docker==6.0.0 requests<2.32.0"
+
     - name: Remove APT-installed python3-docker
       apt:
         name: python3-docker
         state: absent
-
-    - name: Install Docker SDK for Python via pip
-      pip:
-        name:
-          - docker==6.0.0            # Pin to a compatible version
-          - requests<2.32.0         # Ensure requests compatibility
-        executable: pip3
-        break_system_packages: true
 
     - name: Ensure Docker is installed
       apt:
         name: docker.io
         state: present
 
-    - name: Ensure Docker is running and enabled
+    - name: Ensure Docker service is running and enabled
       service:
         name: docker
         state: started
         enabled: yes
+
+    - name: Set Ansible Python interpreter to the venv
+      set_fact:
+        ansible_python_interpreter: "{{ python_executable }}"
 
     - name: Create monitoring network
       community.docker.docker_network:
@@ -39,15 +60,15 @@
       file:
         path: "{{ prometheus.config_dir }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy Prometheus configuration
       copy:
-        src: files/{{ prometheus.config_file }}
+        src: "files/{{ prometheus.config_file }}"
         dest: "{{ prometheus.config_dir }}/{{ prometheus.config_file }}"
 
     - name: Deploy Prometheus
-      docker_container:
+      community.docker.docker_container:
         name: "{{ prometheus.container_name }}"
         image: "{{ prometheus.image }}"
         state: started
@@ -63,10 +84,10 @@
       file:
         path: "{{ grafana.data_dir }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Deploy Grafana
-      docker_container:
+      community.docker.docker_container:
         name: "{{ grafana.container_name }}"
         image: "{{ grafana.image }}"
         state: started
