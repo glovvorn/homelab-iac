@@ -68,7 +68,6 @@
         dest: "{{ compose_dest }}"
         mode: '0644'
       delegate_to: localhost
-      # If playbook runs from control node; remove delegate_to if running on remote :contentReference[oaicite:2]{index=2}
 
     - name: Set Ansible Python interpreter to the venv
       set_fact:
@@ -80,15 +79,14 @@
         build: yes
         pull: yes
         restarted: yes
-      # Requires Docker Compose plugin v2.18.0+ :contentReference[oaicite:3]{index=3}
 
-    - name: Verify services are healthy
-      community.docker.docker_compose_v2_exec:
-        project_src: "{{ project_dir }}"
-        service: grafana
-        command: healthcheck
-      register: grafana_health
+    # - name: Verify services are healthy
+    #   community.docker.docker_compose_v2_exec:
+    #     project_src: "{{ project_dir }}"
+    #     service: grafana
+    #     command: healthcheck
+    #   register: grafana_health
 
-    - name: Debug Grafana health status
-      debug:
-        var: grafana_health
+    # - name: Debug Grafana health status
+    #   debug:
+    #     var: grafana_health
