@@ -1,64 +1,64 @@
 - hosts: localhost
-     become: yes
-     vars_files:
-       - vars/monitoring.yml
-     tasks:
-       - name: Install dependencies
-         apt:
-           name:
-             - docker.io
-             - python3-docker
-           state: present
+  become: yes
+  vars_files:
+    - vars/monitoring.yml
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - docker.io
+          - python3-docker
+        state: present
 
-       - name: Ensure Docker is running
-         service:
-           name: docker
-           state: started
-           enabled: yes
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
 
-       - name: Create monitoring network
-         docker_network:
-           name: "{{ docker_network }}"
+    - name: Create monitoring network
+      docker_network:
+        name: "{{ docker_network }}"
 
-       - name: Create Prometheus config directory
-         file:
-           path: "{{ prometheus.config_dir }}"
-           state: directory
-           mode: '0755'
+    - name: Create Prometheus config directory
+      file:
+        path: "{{ prometheus.config_dir }}"
+        state: directory
+        mode: '0755'
 
-       - name: Copy Prometheus configuration
-         copy:
-           src: files/{{ prometheus.config_file }}
-           dest: "{{ prometheus.config_dir }}/{{ prometheus.config_file }}"
+    - name: Copy Prometheus configuration
+      copy:
+        src: files/{{ prometheus.config_file }}
+        dest: "{{ prometheus.config_dir }}/{{ prometheus.config_file }}"
 
-       - name: Deploy Prometheus
-         docker_container:
-           name: "{{ prometheus.container_name }}"
-           image: "{{ prometheus.image }}"
-           state: started
-           restart_policy: unless-stopped
-           networks:
-             - name: "{{ docker_network }}"
-           ports:
-             - "{{ prometheus.port }}:{{ prometheus.port }}"
-           volumes:
-             - "{{ prometheus.volume_path }}:/etc/prometheus/{{ prometheus.config_file }}"
+    - name: Deploy Prometheus
+      docker_container:
+        name: "{{ prometheus.container_name }}"
+        image: "{{ prometheus.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        ports:
+          - "{{ prometheus.port }}:{{ prometheus.port }}"
+        volumes:
+          - "{{ prometheus.volume_path }}:/etc/prometheus/{{ prometheus.config_file }}"
 
-       - name: Create Grafana data directory
-         file:
-           path: "{{ grafana.data_dir }}"
-           state: directory
-           mode: '0755'
+    - name: Create Grafana data directory
+      file:
+        path: "{{ grafana.data_dir }}"
+        state: directory
+        mode: '0755'
 
-       - name: Deploy Grafana
-         docker_container:
-           name: "{{ grafana.container_name }}"
-           image: "{{ grafana.image }}"
-           state: started
-           restart_policy: unless-stopped
-           networks:
-             - name: "{{ docker_network }}"
-           ports:
-             - "{{ grafana.port }}:{{ grafana.port }}"
-           volumes:
-             - "{{ grafana.data_dir }}:/var/lib/grafana"
+    - name: Deploy Grafana
+      docker_container:
+        name: "{{ grafana.container_name }}"
+        image: "{{ grafana.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        ports:
+          - "{{ grafana.port }}:{{ grafana.port }}"
+        volumes:
+          - "{{ grafana.data_dir }}:/var/lib/grafana"
