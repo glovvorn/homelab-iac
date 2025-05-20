@@ -56,45 +56,39 @@
       community.docker.docker_network:
         name: "{{ docker_network }}"
 
-    - name: Create Prometheus config directory
+    - name: Create project directory for Compose
       file:
-        path: "{{ prometheus.config_dir }}"
+        path: "{{ project_dir }}"
         state: directory
-        mode: "0755"
+        mode: '0755'
 
-    - name: Copy Prometheus configuration
+    - name: Copy docker-compose.yml to target
       copy:
-        src: "files/{{ prometheus.config_file }}"
-        dest: "{{ prometheus.config_dir }}/{{ prometheus.config_file }}"
+        src: "{{ compose_src }}"
+        dest: "{{ compose_dest }}"
+        mode: '0644'
+      delegate_to: localhost
+      # If playbook runs from control node; remove delegate_to if running on remote :contentReference[oaicite:2]{index=2}
 
-    - name: Deploy Prometheus
-      community.docker.docker_container:
-        name: "{{ prometheus.container_name }}"
-        image: "{{ prometheus.image }}"
-        state: started
-        restart_policy: unless-stopped
-        networks:
-          - name: "{{ docker_network }}"
-        ports:
-          - "{{ prometheus.port }}:{{ prometheus.port }}"
-        volumes:
-          - "{{ prometheus.volume_path }}:/etc/prometheus/{{ prometheus.config_file }}"
+    - name: Set Ansible Python interpreter to the venv
+      set_fact:
+        ansible_python_interpreter: "{{ python_exec }}"
 
-    - name: Create Grafana data directory
-      file:
-        path: "{{ grafana.data_dir }}"
-        state: directory
-        mode: "0755"
+    - name: Pull images & start services with Docker Compose v2
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        build: yes
+        pull: yes
+        restarted: yes
+      # Requires Docker Compose plugin v2.18.0+ :contentReference[oaicite:3]{index=3}
 
-    - name: Deploy Grafana
-      community.docker.docker_container:
-        name: "{{ grafana.container_name }}"
-        image: "{{ grafana.image }}"
-        state: started
-        restart_policy: unless-stopped
-        networks:
-          - name: "{{ docker_network }}"
-        ports:
-          - "{{ grafana.port }}:{{ grafana.port }}"
-        volumes:
-          - "{{ grafana.data_dir }}:/var/lib/grafana"
+    - name: Verify services are healthy
+      community.docker.docker_compose_v2_exec:
+        project_src: "{{ project_dir }}"
+        service: grafana
+        command: healthcheck
+      register: grafana_health
+
+    - name: Debug Grafana health status
+      debug:
+        var: grafana_health
