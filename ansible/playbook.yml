@@ -71,7 +71,7 @@
 
     - name: Set Ansible Python interpreter to the venv
       set_fact:
-        ansible_python_interpreter: "{{ python_exec }}"
+        ansible_python_interpreter: "{{ python_executable }}"
 
     - name: Pull images & start services with Docker Compose v2
       community.docker.docker_compose_v2:
