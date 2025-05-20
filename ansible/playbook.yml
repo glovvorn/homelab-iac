@@ -64,8 +64,8 @@
 
     - name: Copy docker-compose.yml to target
       copy:
-        src: "{{ compose_src }}"
-        dest: "{{ compose_dest }}"
+        src: "{{ playbook_dir }}/../docker/management/monitoring/docker-compose.yml"
+        dest: "{{ project_dir }}/docker-compose.yml"
         mode: '0644'
       delegate_to: localhost
 
