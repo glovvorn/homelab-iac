@@ -2,24 +2,37 @@
   become: yes
   vars_files:
     - vars/monitoring.yml
+
+  collections:
+    - community.docker
+
   tasks:
-    - name: Install dependencies
+    - name: Remove APT-installed python3-docker to avoid vendored SDK conflicts
       apt:
+        name: python3-docker
+        state: absent
+
+    - name: Install Docker SDK for Python via pip
+      pip:
         name:
-          - docker.io
-          - python3-docker
+          - docker==6.0.0            # Pin to a compatible version
+          - requests<2.32.0         # Ensure requests compatibility
+        executable: pip3
+
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
         state: present
 
-    - name: Ensure Docker is running
+    - name: Ensure Docker is running and enabled
       service:
         name: docker
         state: started
         enabled: yes
 
     - name: Create monitoring network
-      docker_network:
+      community.docker.docker_network:
         name: "{{ docker_network }}"
-        docker_host: "unix:///var/run/docker.sock"
 
     - name: Create Prometheus config directory
       file:
@@ -38,7 +51,6 @@
         image: "{{ prometheus.image }}"
         state: started
         restart_policy: unless-stopped
-        docker_host: "unix:///var/run/docker.sock"
         networks:
           - name: "{{ docker_network }}"
         ports:
@@ -58,7 +70,6 @@
         image: "{{ grafana.image }}"
         state: started
         restart_policy: unless-stopped
-        docker_host: "unix:///var/run/docker.sock"
         networks:
           - name: "{{ docker_network }}"
         ports:
