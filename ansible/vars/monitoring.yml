@@ -1,5 +1,10 @@
 ---
 docker_network: monitoring
+
+project_dir: /opt/monitoring
+compose_src: docker/management/monitoring/docker-compose.yml
+compose_dest: /opt/monitoring/docker-compose.yml
+
 prometheus:
   container_name: prometheus
   image: prom/prometheus
