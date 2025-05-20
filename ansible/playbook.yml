@@ -1,43 +1,64 @@
 - hosts: localhost
-  become: yes
-  tasks:
-    - name: Install dependencies
-      apt:
-        name:
-          - docker.io
-          - python3-docker
-          - docker-compose
-        state: present
+     become: yes
+     vars_files:
+       - vars/monitoring.yml
+     tasks:
+       - name: Install dependencies
+         apt:
+           name:
+             - docker.io
+             - python3-docker
+           state: present
 
-    - name: Ensure Docker is running
-      service:
-        name: docker
-        state: started
-        enabled: yes
+       - name: Ensure Docker is running
+         service:
+           name: docker
+           state: started
+           enabled: yes
 
-    - name: Create Prometheus config directory
-      file:
-        path: /etc/prometheus
-        state: directory
-        mode: "0755"
+       - name: Create monitoring network
+         docker_network:
+           name: "{{ docker_network }}"
 
-    - name: Copy Prometheus configuration
-      copy:
-        src: files/prometheus.yml
-        dest: /etc/prometheus/prometheus.yml
+       - name: Create Prometheus config directory
+         file:
+           path: "{{ prometheus.config_dir }}"
+           state: directory
+           mode: '0755'
 
-    - name: Create Grafana data directory
-      file:
-        path: /var/lib/grafana
-        state: directory
-        mode: "0755"
+       - name: Copy Prometheus configuration
+         copy:
+           src: files/{{ prometheus.config_file }}
+           dest: "{{ prometheus.config_dir }}/{{ prometheus.config_file }}"
 
-    - name: Copy Docker Compose file
-      copy:
-        src: "{{ playbook_dir }}/../docker/management/monitoring/docker-compose.yml"
-        dest: /opt/monitoring/docker-compose.yml
+       - name: Deploy Prometheus
+         docker_container:
+           name: "{{ prometheus.container_name }}"
+           image: "{{ prometheus.image }}"
+           state: started
+           restart_policy: unless-stopped
+           networks:
+             - name: "{{ docker_network }}"
+           ports:
+             - "{{ prometheus.port }}:{{ prometheus.port }}"
+           volumes:
+             - "{{ prometheus.volume_path }}:/etc/prometheus/{{ prometheus.config_file }}"
 
-    - name: Deploy monitoring stack with Docker Compose
-      command: docker-compose -f /opt/monitoring/docker-compose.yml up -d
-      args:
-        chdir: /opt/monitoring
+       - name: Create Grafana data directory
+         file:
+           path: "{{ grafana.data_dir }}"
+           state: directory
+           mode: '0755'
+
+       - name: Deploy Grafana
+         docker_container:
+           name: "{{ grafana.container_name }}"
+           image: "{{ grafana.image }}"
+           state: started
+           restart_policy: unless-stopped
+           networks:
+             - name: "{{ docker_network }}"
+           ports:
+             - "{{ grafana.port }}:{{ grafana.port }}"
+           volumes:
+             - "{{ grafana.data_dir }}:/var/lib/grafana"

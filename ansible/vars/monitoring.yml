@@ -1,0 +1,14 @@
+---
+docker_network: monitoring
+prometheus:
+  container_name: prometheus
+  image: prom/prometheus
+  port: 9090
+  config_dir: /etc/prometheus
+  config_file: prometheus.yml
+  volume_path: /etc/prometheus/prometheus.yml
+grafana:
+  container_name: grafana
+  image: grafana/grafana
+  port: 3000
+  data_dir: /var/lib/grafana

@@ -13,4 +13,4 @@ jobs:
 
     - name: Run Ansible playbook
       run: |
-        ansible-playbook -i localhost, ansible/playbook.yml --connection=local
+        ansible-playbook -i localhost, "{{ env.PLAYBOOK_PATH }}" --connection=local

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s  # How often to scrape metrics
+  evaluation_interval: 15s  # How often to evaluate rules
+
+scrape_configs:
+  - job_name: 'prometheus'  # Scrape Prometheus itself
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: 'grafana'  # Example: Scrape Grafana
+    static_configs:
+      - targets: ['grafana:3000']  # Adjust to your Grafana service name/port
